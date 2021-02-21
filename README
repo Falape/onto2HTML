@@ -1,0 +1,9 @@
+6) rdflib :
+     dado uma ontologia em formato turtle (ou algo que o rdf seja capaz de
+importar)
+        . inferir (usando um dos reasoner rdflib OU levando em conta apenas
+                    as relações inversas owl:inverseOf,  owl:SymmetricProperty)
+        . e gerar páginas HTML estáticas (para cada Classe, Individuo)
+                    o mais hiperligadas possiveis
+        . ou gerar LaTeX
+        . ou XDXF dicionaries
