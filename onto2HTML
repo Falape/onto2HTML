@@ -1,0 +1,182 @@
+from rdflib import Graph, URIRef
+from rdflib.namespace import OWL, RDF, NamespaceManager
+import pprint, os, pathlib, copy, sys
+
+from htmlJinja import htmlClass, htmlIndividuals
+
+
+#def's
+def getPrefix(g):
+    res = {}
+    for n, u in g.namespace_manager.namespaces():
+        print("prefix")
+        print(str(n) +" e " + str(u))
+        res[str(n)] = str(u)
+        print("fim")
+    return res
+
+
+def prefixRemove(uri, dicPrefix):
+    for key in dicPrefix:
+        if dicPrefix[key] in uri:
+            nome = uri.replace(dicPrefix[key],'')
+            print("nome sem uri: " + nome)
+            return nome
+            break
+
+
+
+def getOnlyType(g, type):
+    res = []
+    #entender type
+    owl= OWL.ObjectProperty
+    if type == 'Class':
+        owl = OWL.Class
+    if type == 'NamedIndividual':
+        owl = OWL.NamedIndividual
+    for s, p, o in g.triples((None, RDF.type, owl)):
+        nome = str(s)
+        #print("adicona URI à lista " + nome)
+        res.append(nome)
+        print(nome in res)
+    return res
+
+
+def getType(g, Gtype, dicPrefix):
+    res = {}
+    #faz get do triplo
+    temp = getOnlyType(g ,Gtype)
+    for uri in temp:
+        nome = prefixRemove(uri,dicPrefix)
+        res[nome] = []
+    for uri in temp:  #pode falhar usar for i in range(len(temp)):
+        nome = prefixRemove(uri,dicPrefix)
+        print("--> Para o uri: " + uri)
+        for s, p, o in g.triples((URIRef(uri), None, None)):
+            #vai obter vários triplos
+            to = prefixRemove(str(o), dicPrefix)
+            if to != Gtype:
+                type = prefixRemove(str(p),dicPrefix)
+                print("Nome: " + nome + " Com (" + type + "," + to+")")
+                res[nome].append((type,to))
+                if type == 'inverseOf':
+                    res[to].append((type,nome))
+                print('\n')
+        print('\n')
+    return res
+
+def containTuple(s, o, list):
+    for x,y in list:
+        if x == s:
+            if y == o:
+                return True
+    return False
+
+def makeRelations(dicIndividuals, dicClasses, dicObject):
+    res = {}
+    #get nome do individuo
+    for key in dicIndividuals:
+        #lista de tuplos associados ao nome
+        for t,o in dicIndividuals[key]:
+            #se for class vai para o dic de class a usar no  html
+            if t == 'type' and o in dicClasses:
+                if o in res:
+                    res[o].append(key)
+                else:
+                    res[o]=[key]
+            #ver se é um object
+
+            if t in dicObject:
+                for f,s in dicObject[t]:
+                    if f == 'inverseOf':
+                        #quero saber se o 'o' do dicIndividuals
+                        if not containTuple(s,key, dicIndividuals[o]): # não existe o inverso no distinatário
+                            dicIndividuals[o].append((s,key))
+    return res
+
+def slipClassesObjects(dicIndividuals):
+    res = {}
+    for key in dicIndividuals:
+        for t in dicIndividuals[key]:
+            if not t[0] in dicObject:
+                if key in res:
+                    res[key].append(copy.copy(t))
+                else:
+                    res[key]=[copy.copy(t)]
+                dicIndividuals[key].remove(t)
+        dicIndividuals[key].sort()
+    return res
+
+######Run#######
+args = sys.argv[1]
+
+g = Graph()
+
+g.parse(args, format="turtle")
+
+print("->Get prefix!")
+dicPrefix = getPrefix(g)
+print("\n ->Get ObjetctsPropetys")
+dicObject = getType(g, 'ObjectProperty', dicPrefix)
+dicClasses = getType(g, 'Class', dicPrefix)
+
+dicDatatype = {} #ver? falta exemplo para saber utilização
+
+dicIndividuals = getType(g, 'NamedIndividual',dicPrefix)
+
+dicUsedClass = makeRelations(dicIndividuals, dicClasses, dicObject)
+
+#sort dos Individuals no dicUsedClass
+for key in dicUsedClass:
+    dicUsedClass[key].sort()
+
+print("Prefixos")
+pprint.pprint(dicPrefix)
+print("Object Properties")
+pprint.pprint(dicObject)
+print("Classes")
+pprint.pprint(dicClasses)
+print("Individuals")
+pprint.pprint(dicIndividuals)
+print('Html class')
+pprint.pprint(dicUsedClass)
+#os.system("clear")
+
+
+#####where magic happens#####
+#path atual
+path=pathlib.Path().absolute()
+#pasta "Main" para ontologia
+ontoPath=str(path)+"/Ontologia/"
+os.makedirs(ontoPath, exist_ok=True)
+
+classPath=ontoPath+"Classes/"
+individualPath=ontoPath+"Individuals/"
+
+#FALTA SORT DAS LISTAS DENTRO DAS CLASSES!!
+#writting html classes
+for key in dicUsedClass:
+    os.makedirs(classPath, exist_ok=True)
+    text = htmlClass(key, dicUsedClass[key],individualPath)
+    with open(classPath+key+'.html', "w") as file:
+        file.write(text)
+    file.close()
+
+IndividualClass = slipClassesObjects(dicIndividuals)
+
+#writting html Individuals
+for key in dicIndividuals:
+    os.makedirs(individualPath, exist_ok=True)
+    text = ''
+    if key not in dicIndividuals:
+        text = htmlIndividuals(key, IndividualClass[key], classPath, [], individualPath)
+    elif key not in IndividualClass:
+        text = htmlIndividuals(key, [], classPath, dicIndividuals[key], individualPath)
+    else:
+        text = htmlIndividuals(key, IndividualClass[key], classPath, dicIndividuals[key], individualPath)
+    if text == '':
+        print("Erro")
+    else:
+        with open(individualPath+key+'.html', "w") as file:
+            file.write(text)
+        file.close()
