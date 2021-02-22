@@ -1,3 +1,5 @@
+#!python3
+
 from rdflib import Graph, URIRef
 from rdflib.namespace import OWL, RDF, NamespaceManager
 import pprint, os, pathlib, copy, sys
@@ -9,10 +11,10 @@ from htmlJinja import htmlClass, htmlIndividuals
 def getPrefix(g):
     res = {}
     for n, u in g.namespace_manager.namespaces():
-        print("prefix")
-        print(str(n) +" e " + str(u))
+        #print("prefix")
+        #print(str(n) +" e " + str(u))
         res[str(n)] = str(u)
-        print("fim")
+        #print("fim")
     return res
 
 
@@ -168,6 +170,7 @@ for key in dicUsedClass:
 IndividualClass = slipClassesObjects(dicIndividuals)
 
 #writting html Individuals
+print("writting Individuals")
 for key in dicIndividuals:
     os.makedirs(individualPath, exist_ok=True)
     text = ''
@@ -180,7 +183,6 @@ for key in dicIndividuals:
     if text == '':
         print("Erro")
     else:
-        print ("writting classes")
         with open(individualPath+key+'.html', "w") as file:
             file.write(text)
         file.close()
