@@ -20,7 +20,7 @@ def prefixRemove(uri, dicPrefix):
     for key in dicPrefix:
         if dicPrefix[key] in uri:
             nome = uri.replace(dicPrefix[key],'')
-            print("nome sem uri: " + nome)
+            #print("nome sem uri: " + nome)
             return nome
             break
 
@@ -38,7 +38,7 @@ def getOnlyType(g, type):
         nome = str(s)
         #print("adicona URI à lista " + nome)
         res.append(nome)
-        print(nome in res)
+        #print(nome in res)
     return res
 
 
@@ -51,18 +51,18 @@ def getType(g, Gtype, dicPrefix):
         res[nome] = []
     for uri in temp:  #pode falhar usar for i in range(len(temp)):
         nome = prefixRemove(uri,dicPrefix)
-        print("--> Para o uri: " + uri)
+        #print("--> Para o uri: " + uri)
         for s, p, o in g.triples((URIRef(uri), None, None)):
             #vai obter vários triplos
             to = prefixRemove(str(o), dicPrefix)
             if to != Gtype:
                 type = prefixRemove(str(p),dicPrefix)
-                print("Nome: " + nome + " Com (" + type + "," + to+")")
+                #print("Nome: " + nome + " Com (" + type + "," + to+")")
                 res[nome].append((type,to))
                 if type == 'inverseOf':
                     res[to].append((type,nome))
-                print('\n')
-        print('\n')
+                #print('\n')
+        #print('\n')
     return res
 
 def containTuple(s, o, list):
@@ -110,13 +110,14 @@ def slipClassesObjects(dicIndividuals):
 ######Run#######
 args = sys.argv[1]
 
+print("Using : ", args)
 g = Graph()
 
 g.parse(args, format="turtle")
 
-print("->Get prefix!")
+#print("->Get prefix!")
 dicPrefix = getPrefix(g)
-print("\n ->Get ObjetctsPropetys")
+#print("\n ->Get ObjetctsPropetys")
 dicObject = getType(g, 'ObjectProperty', dicPrefix)
 dicClasses = getType(g, 'Class', dicPrefix)
 
@@ -130,22 +131,23 @@ dicUsedClass = makeRelations(dicIndividuals, dicClasses, dicObject)
 for key in dicUsedClass:
     dicUsedClass[key].sort()
 
-print("Prefixos")
-pprint.pprint(dicPrefix)
-print("Object Properties")
-pprint.pprint(dicObject)
-print("Classes")
-pprint.pprint(dicClasses)
-print("Individuals")
-pprint.pprint(dicIndividuals)
-print('Html class')
-pprint.pprint(dicUsedClass)
+#print("Prefixos")
+#pprint.pprint(dicPrefix)
+#print("Object Properties")
+#pprint.pprint(dicObject)
+#print("Classes")
+#pprint.pprint(dicClasses)
+#print("Individuals")
+#pprint.pprint(dicIndividuals)
+#print('Html class')
+#pprint.pprint(dicUsedClass)
 #os.system("clear")
 
 
 #####where magic happens#####
 #path atual
 path=pathlib.Path().absolute()
+
 #pasta "Main" para ontologia
 ontoPath=str(path)+"/Ontologia/"
 os.makedirs(ontoPath, exist_ok=True)
@@ -158,6 +160,7 @@ individualPath=ontoPath+"Individuals/"
 for key in dicUsedClass:
     os.makedirs(classPath, exist_ok=True)
     text = htmlClass(key, dicUsedClass[key],individualPath)
+    print("writting class's")
     with open(classPath+key+'.html', "w") as file:
         file.write(text)
     file.close()
@@ -177,6 +180,7 @@ for key in dicIndividuals:
     if text == '':
         print("Erro")
     else:
+        print ("writting classes")
         with open(individualPath+key+'.html', "w") as file:
             file.write(text)
         file.close()
